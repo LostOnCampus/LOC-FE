@@ -180,7 +180,9 @@ function CommentSection({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
+          }}
           placeholder="궁금한 점이나 문의를 남겨보세요"
           style={{ flex: 1, padding: "13px 15px", borderRadius: 11, border: "1px solid #cfddf7", fontSize: 15, outline: "none" }}
         />
