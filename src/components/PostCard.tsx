@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { C } from "../types";
 import type { Post } from "../types";
 
-// 분실물/습득물 배지 (목업 색상 그대로)
+// 분실물/습득물 배지
 export function TypeBadge({ type }: { type: Post["type"] }) {
   const isLost = type === "lost";
   return (
@@ -22,7 +22,6 @@ export function TypeBadge({ type }: { type: Post["type"] }) {
   );
 }
 
-// 게시글 카드 (목록/홈/검색 결과 공용)
 export function PostCard({ post }: { post: Post }) {
   return (
     <Link
@@ -49,31 +48,36 @@ export function PostCard({ post }: { post: Post }) {
         e.currentTarget.style.transform = "none";
       }}
     >
-      {/* 이미지 자리 (목업과 동일한 줄무늬 placeholder) */}
+      {/* 이미지 */}
       <div
         style={{
           position: "relative",
           width: "100%",
           aspectRatio: "4 / 3",
-          background:
-            "repeating-linear-gradient(45deg,#eef2fa,#eef2fa 9px,#e7edf8 9px,#e7edf8 18px)",
+          background: post.imageUrl
+            ? undefined
+            : "repeating-linear-gradient(45deg,#eef2fa,#eef2fa 9px,#e7edf8 9px,#e7edf8 18px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <span
-          style={{
-            fontFamily: "ui-monospace,Menlo,monospace",
-            fontSize: 10.5,
-            color: "#94a1bd",
-            background: "rgba(255,255,255,0.78)",
-            padding: "3px 8px",
-            borderRadius: 6,
-          }}
-        >
-          이미지
-        </span>
+        {post.imageUrl ? (
+          <img src={post.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span
+            style={{
+              fontFamily: "ui-monospace,Menlo,monospace",
+              fontSize: 10.5,
+              color: "#94a1bd",
+              background: "rgba(255,255,255,0.78)",
+              padding: "3px 8px",
+              borderRadius: 6,
+            }}
+          >
+            이미지
+          </span>
+        )}
         <div style={{ position: "absolute", top: 10, left: 10 }}>
           <TypeBadge type={post.type} />
         </div>
@@ -111,7 +115,7 @@ export function PostCard({ post }: { post: Post }) {
           {post.title}
         </div>
         <div style={{ fontSize: 12.5, color: "#7a869e" }}>
-          {post.location} · {post.date}
+          {post.location} · {post.eventDate}
         </div>
       </div>
     </Link>

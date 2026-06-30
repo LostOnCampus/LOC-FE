@@ -1,31 +1,68 @@
-import type { Post, NewPost, PostStatus, Comment } from "../types";
+import type { Post, NewPost, PostStatus, Comment, NewInquiry, Inquiry } from "../types";
 import { MOCK_POSTS } from "../data/mockPosts";
 
 /**
  * ============================================================
- *  여기가 "프론트 ↔ 백엔드"를 잇는 단 하나의 지점입니다.
+ *  프론트 ↔ 백엔드 연결 지점 (단 하나)
  * ============================================================
+ *  - .env 에 VITE_API_URL 없으면 → mock 데이터
+ *  - .env 에 VITE_API_URL 있으면 → 실제 백엔드 fetch
+ *      VITE_API_URL=http://백엔드_서버_IP:8080
  *
- *  - .env 에 VITE_API_URL 이 없으면  → mock 데이터로 동작 (API 없이 화면 완성용)
- *  - .env 에 VITE_API_URL 이 있으면  → 실제 백엔드 서버로 fetch
- *
- *  내일 API가 나오면 .env 파일에 아래 한 줄만 추가하면 됩니다:
- *     VITE_API_URL=http://백엔드_서버_IP:8080
- *  페이지 코드는 손대지 않아도 됩니다.
+ *  백엔드가 snake_case(event_date, image_url, item_name, user_id …)로 내려줘도
+ *  아래 normalize 함수가 프론트 타입(camelCase)으로 자동 변환합니다.
+ *  → 페이지 코드는 백엔드 응답 형태와 무관하게 동작.
  */
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
 const USE_MOCK = !API_URL;
 
-// 현재 로그인 사용자(데모용). 실제로는 인증에서 가져옵니다.
-export const CURRENT_USER = "20230000";
+// 현재 로그인 사용자(데모용). 실제로는 인증 토큰/세션에서 가져옵니다.
+export const CURRENT_USER_ID = 1;
+export const CURRENT_STUDENT_ID = "20230000";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// mock 댓글 저장소 (세션 동안만 유지)
+/* ---------- 백엔드 응답 → 프론트 타입 변환 ---------- */
+// 어떤 키 이름으로 와도 받아내도록 snake/camel 둘 다 확인
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function normalizePost(r: any): Post {
+  return {
+    id: r.id,
+    userId: r.user_id ?? r.userId,
+    authorStudentId:
+      r.author_student_id ?? r.student_id ?? r.studentId ?? r.user?.student_id,
+    type: r.type,
+    title: r.title,
+    itemName: r.item_name ?? r.itemName ?? "",
+    category: r.category,
+    location: r.location,
+    eventDate: r.event_date ?? r.eventDate ?? "",
+    description: r.description ?? r.desc ?? "",
+    imageUrl: r.image_url ?? r.imageUrl ?? undefined,
+    status: r.status,
+    createdAt: r.created_at ?? r.createdAt,
+    updatedAt: r.updated_at ?? r.updatedAt,
+  };
+}
+
+function normalizeComment(r: any): Comment {
+  return {
+    id: r.id,
+    postId: r.post_id ?? r.postId,
+    userId: r.user_id ?? r.userId,
+    authorStudentId:
+      r.author_student_id ?? r.student_id ?? r.studentId ?? r.user?.student_id,
+    content: r.content ?? r.text ?? "",
+    createdAt: r.created_at ?? r.createdAt ?? "",
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/* ---------- mock 댓글 저장소 ---------- */
 let MOCK_COMMENTS: Comment[] = [
-  { id: 1, postId: 2, author: "20211111", text: "혹시 카드 색이 파란색인가요?", date: "2026-06-29 13:10" },
-  { id: 2, postId: 2, author: "20219876", text: "네 맞습니다! 쪽지 드릴게요.", date: "2026-06-29 13:25" },
+  { id: 1, postId: 2, userId: 21, authorStudentId: "20211111", content: "혹시 카드 색이 파란색인가요?", createdAt: "2026-06-29 13:10" },
+  { id: 2, postId: 2, userId: 12, authorStudentId: "20219876", content: "네 맞습니다! 문의 주셔서 감사해요.", createdAt: "2026-06-29 13:25" },
 ];
 
 /* ---------------- 게시글 ---------------- */
@@ -33,11 +70,12 @@ let MOCK_COMMENTS: Comment[] = [
 export async function getPosts(): Promise<Post[]> {
   if (USE_MOCK) {
     await delay(250);
-    return [...MOCK_POSTS].sort((a, b) => b.date.localeCompare(a.date));
+    return [...MOCK_POSTS].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
   }
   const res = await fetch(`${API_URL}/posts`);
   if (!res.ok) throw new Error("게시글 목록을 불러오지 못했습니다.");
-  return res.json();
+  const data = await res.json();
+  return (Array.isArray(data) ? data : data.posts ?? []).map(normalizePost);
 }
 
 export async function getPost(id: number): Promise<Post | undefined> {
@@ -47,7 +85,7 @@ export async function getPost(id: number): Promise<Post | undefined> {
   }
   const res = await fetch(`${API_URL}/posts/${id}`);
   if (!res.ok) throw new Error("게시글을 불러오지 못했습니다.");
-  return res.json();
+  return normalizePost(await res.json());
 }
 
 export async function createPost(data: NewPost): Promise<Post> {
@@ -56,23 +94,34 @@ export async function createPost(data: NewPost): Promise<Post> {
     const created: Post = {
       ...data,
       id: Date.now(),
-      date: data.date || new Date().toISOString().slice(0, 10),
-      author: CURRENT_USER,
+      userId: CURRENT_USER_ID,
+      authorStudentId: CURRENT_STUDENT_ID,
+      eventDate: data.eventDate || new Date().toISOString().slice(0, 10),
       status: "open",
     };
     MOCK_POSTS.unshift(created);
     return created;
   }
+  // 백엔드 컬럼명(snake_case)에 맞춰 전송. user_id/status는 서버가 채움.
+  const body = {
+    type: data.type,
+    title: data.title,
+    item_name: data.itemName,
+    category: data.category,
+    location: data.location,
+    event_date: data.eventDate,
+    description: data.description,
+    image_url: data.imageUrl ?? null,
+  };
   const res = await fetch(`${API_URL}/posts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error("글 등록에 실패했습니다.");
-  return res.json();
+  return normalizePost(await res.json());
 }
 
-// 상태 변경 (작성자가 "해결 완료"로 바꾸는 기능)
 export async function updatePostStatus(id: number, status: PostStatus): Promise<Post> {
   if (USE_MOCK) {
     await delay(200);
@@ -87,7 +136,7 @@ export async function updatePostStatus(id: number, status: PostStatus): Promise<
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error("상태 변경에 실패했습니다.");
-  return res.json();
+  return normalizePost(await res.json());
 }
 
 export async function deletePost(id: number): Promise<void> {
@@ -101,7 +150,7 @@ export async function deletePost(id: number): Promise<void> {
   if (!res.ok) throw new Error("삭제에 실패했습니다.");
 }
 
-/* ---------------- 댓글(문의) ---------------- */
+/* ---------------- 댓글 ---------------- */
 
 export async function getComments(postId: number): Promise<Comment[]> {
   if (USE_MOCK) {
@@ -110,18 +159,20 @@ export async function getComments(postId: number): Promise<Comment[]> {
   }
   const res = await fetch(`${API_URL}/posts/${postId}/comments`);
   if (!res.ok) throw new Error("댓글을 불러오지 못했습니다.");
-  return res.json();
+  const data = await res.json();
+  return (Array.isArray(data) ? data : data.comments ?? []).map(normalizeComment);
 }
 
-export async function addComment(postId: number, text: string): Promise<Comment> {
+export async function addComment(postId: number, content: string): Promise<Comment> {
   if (USE_MOCK) {
     await delay(200);
     const c: Comment = {
       id: Date.now(),
       postId,
-      author: CURRENT_USER,
-      text,
-      date: new Date().toISOString().slice(0, 16).replace("T", " "),
+      userId: CURRENT_USER_ID,
+      authorStudentId: CURRENT_STUDENT_ID,
+      content,
+      createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
     };
     MOCK_COMMENTS.push(c);
     return c;
@@ -129,9 +180,25 @@ export async function addComment(postId: number, text: string): Promise<Comment>
   const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ content }),
   });
   if (!res.ok) throw new Error("댓글 등록에 실패했습니다.");
+  return normalizeComment(await res.json());
+}
+
+/* ---------------- 문의(inquiries) ---------------- */
+
+export async function createInquiry(data: NewInquiry): Promise<Inquiry> {
+  if (USE_MOCK) {
+    await delay(250);
+    return { ...data, id: Date.now(), createdAt: new Date().toISOString() };
+  }
+  const res = await fetch(`${API_URL}/inquiries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: data.name, phone: data.phone, message: data.message }),
+  });
+  if (!res.ok) throw new Error("문의 전송에 실패했습니다.");
   return res.json();
 }
 
@@ -146,9 +213,9 @@ export async function searchPosts(
   if (!q) return all;
   return all.filter((p) => {
     return (
-      (scope.title && p.title.toLowerCase().includes(q)) ||
+      (scope.title && (p.title.toLowerCase().includes(q) || p.itemName.toLowerCase().includes(q))) ||
       (scope.place && p.location.toLowerCase().includes(q)) ||
-      (scope.content && p.desc.toLowerCase().includes(q))
+      (scope.content && p.description.toLowerCase().includes(q))
     );
   });
 }

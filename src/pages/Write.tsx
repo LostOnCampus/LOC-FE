@@ -1,19 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { C } from "../types";
+import { C, CATEGORIES } from "../types";
 import type { PostType } from "../types";
 import { createPost } from "../api/posts";
 
 const wrap: React.CSSProperties = { maxWidth: 720, margin: "0 auto", padding: "34px 24px 60px" };
-const CATEGORIES = ["전자기기", "지갑/카드", "의류", "신분증", "기타"];
-const MAX_IMAGES = 5;
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-
-// 미리보기용 이미지 (브라우저 메모리에만 존재)
-interface PreviewImage {
-  url: string; // object URL (미리보기)
-  file: File; // 나중에 서버 업로드 시 사용
-}
 
 export default function Write() {
   const navigate = useNavigate();
@@ -23,60 +15,55 @@ export default function Write() {
   const [type, setType] = useState<PostType>(initialType);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10)); // 기본값: 오늘
+  const [itemName, setItemName] = useState("");
+  const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
-  const [desc, setDesc] = useState("");
-  const [images, setImages] = useState<PreviewImage[]>([]);
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState<{ url: string; file: File } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function onPickImages(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = ""; // 같은 파일 다시 선택 가능하도록 초기화
-    const next: PreviewImage[] = [];
-    for (const file of files) {
-      if (images.length + next.length >= MAX_IMAGES) {
-        setError(`사진은 최대 ${MAX_IMAGES}장까지 올릴 수 있어요.`);
-        break;
-      }
-      if (!/^image\/(jpeg|png)$/.test(file.type)) {
-        setError("JPG, PNG 형식만 올릴 수 있어요.");
-        continue;
-      }
-      if (file.size > MAX_SIZE) {
-        setError("파일당 5MB 이하만 올릴 수 있어요.");
-        continue;
-      }
-      next.push({ url: URL.createObjectURL(file), file });
+  function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|png)$/.test(file.type)) {
+      setError("JPG, PNG 형식만 올릴 수 있어요.");
+      return;
     }
-    if (next.length) setImages((prev) => [...prev, ...next]);
+    if (file.size > MAX_SIZE) {
+      setError("파일은 5MB 이하만 올릴 수 있어요.");
+      return;
+    }
+    setError("");
+    if (image) URL.revokeObjectURL(image.url);
+    setImage({ url: URL.createObjectURL(file), file });
   }
 
-  function removeImage(idx: number) {
-    setImages((prev) => {
-      URL.revokeObjectURL(prev[idx].url);
-      return prev.filter((_, i) => i !== idx);
-    });
+  function removeImage() {
+    if (image) URL.revokeObjectURL(image.url);
+    setImage(null);
   }
 
   async function submit() {
-    if (!title.trim() || !location.trim() || !date) {
-      setError("제목, 날짜, 장소는 필수입니다.");
+    if (!title.trim() || !itemName.trim() || !location.trim() || !eventDate) {
+      setError("제목, 물품명, 날짜, 장소는 필수입니다.");
       return;
     }
     setError("");
     setSubmitting(true);
     try {
-      // 지금은 mock이라 미리보기 URL을 그대로 저장. 실제 서버 연결 시엔
-      // images의 file들을 FormData로 업로드하고 받은 URL을 넣으면 됩니다.
+      // mock이라 미리보기 URL을 그대로 저장. 실제 서버 연결 시엔
+      // image.file 을 FormData로 업로드 → 받은 URL을 imageUrl 로 보냅니다.
       const created = await createPost({
         type,
         category,
         title,
-        date,
+        itemName,
+        eventDate,
         location,
-        desc,
-        images: images.map((i) => i.url),
+        description,
+        imageUrl: image?.url,
       });
       navigate(`/posts/${created.id}`);
     } catch (e) {
@@ -90,7 +77,6 @@ export default function Write() {
     <div style={wrap}>
       <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 22px" }}>글 등록</h1>
 
-      {/* 유형: 분실/습득 토글 */}
       <Field label="유형 *">
         <div style={{ display: "flex", gap: 10 }}>
           <Seg active={type === "lost"} color={C.lost} bg={C.lostBg} onClick={() => setType("lost")}>
@@ -106,7 +92,10 @@ export default function Write() {
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예) 중앙도서관에서 검정 에어팟 케이스 분실" style={inputStyle} />
       </Field>
 
-      {/* 분류 + 날짜 (한 줄에 2칸) */}
+      <Field label="물품명 *">
+        <input value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="예) 에어팟 프로 케이스" style={inputStyle} />
+      </Field>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Field label="분류 *">
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
@@ -116,7 +105,7 @@ export default function Write() {
           </select>
         </Field>
         <Field label="날짜 *">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
+          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} style={inputStyle} />
         </Field>
       </div>
 
@@ -126,23 +115,22 @@ export default function Write() {
 
       <Field label="상세 설명">
         <textarea
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           placeholder="물건의 특징, 발견·분실 상황 등을 적어주세요."
           rows={6}
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </Field>
 
-      {/* 사진 업로드 */}
-      <Field label={`사진 업로드 (최대 ${MAX_IMAGES}장)`}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {/* 추가 버튼 */}
-          {images.length < MAX_IMAGES && (
+      {/* 사진 업로드 (1장) */}
+      <Field label="사진 업로드">
+        <div style={{ display: "flex", gap: 12 }}>
+          {!image ? (
             <label
               style={{
-                width: 110,
-                height: 110,
+                width: 120,
+                height: 120,
                 borderRadius: 14,
                 border: `1.5px dashed #b7c8ee`,
                 background: "#f6f9ff",
@@ -159,20 +147,13 @@ export default function Write() {
             >
               <span style={{ fontSize: 24, fontWeight: 400, lineHeight: 1 }}>+</span>
               사진 추가
-              <input type="file" accept="image/jpeg,image/png" multiple onChange={onPickImages} style={{ display: "none" }} />
+              <input type="file" accept="image/jpeg,image/png" onChange={onPickImage} style={{ display: "none" }} />
             </label>
-          )}
-
-          {/* 미리보기 */}
-          {images.map((img, i) => (
-            <div key={img.url} style={{ position: "relative", width: 110, height: 110 }}>
-              <img
-                src={img.url}
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 14, border: `1px solid ${C.line}` }}
-              />
+          ) : (
+            <div style={{ position: "relative", width: 120, height: 120 }}>
+              <img src={image.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 14, border: `1px solid ${C.line}` }} />
               <button
-                onClick={() => removeImage(i)}
+                onClick={removeImage}
                 aria-label="삭제"
                 style={{
                   position: "absolute",
@@ -186,7 +167,6 @@ export default function Write() {
                   color: "#fff",
                   cursor: "pointer",
                   fontSize: 13,
-                  lineHeight: 1,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -195,9 +175,9 @@ export default function Write() {
                 ✕
               </button>
             </div>
-          ))}
+          )}
         </div>
-        <p style={{ fontSize: 12.5, color: C.muted, margin: "10px 0 0" }}>JPG, PNG 형식 · 파일당 5MB 이하</p>
+        <p style={{ fontSize: 12.5, color: C.muted, margin: "10px 0 0" }}>JPG, PNG 형식 · 5MB 이하 · 1장</p>
       </Field>
 
       {error && <p style={{ color: C.lost, fontSize: 14, marginBottom: 14 }}>{error}</p>}
@@ -251,7 +231,6 @@ const inputStyle: React.CSSProperties = {
   fontSize: 15,
   outline: "none",
 };
-
 const primaryBtn: React.CSSProperties = {
   flex: 1,
   background: C.brand,
@@ -263,7 +242,6 @@ const primaryBtn: React.CSSProperties = {
   fontWeight: 700,
   cursor: "pointer",
 };
-
 const ghostBtn: React.CSSProperties = {
   padding: "15px 24px",
   background: "#fff",

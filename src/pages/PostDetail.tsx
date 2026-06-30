@@ -8,16 +8,14 @@ import {
   addComment,
   updatePostStatus,
   deletePost,
-  CURRENT_USER,
+  CURRENT_USER_ID,
 } from "../api/posts";
 import { TypeBadge } from "../components/PostCard";
 
 const wrap: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: "30px 24px 70px" };
 
-// "2026-06-29" -> "06.29"
 const shortDate = (d: string) => (d.length >= 10 ? d.slice(5).replace("-", ".") : d);
-// "20219876" -> "20219***"
-const maskAuthor = (a: string) => (a.length > 5 ? a.slice(0, 5) + "***" : a);
+const maskSid = (s?: string) => (s && s.length > 5 ? s.slice(0, 5) + "***" : s ?? "익명");
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -27,7 +25,6 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | undefined>();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeImg, setActiveImg] = useState(0);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -49,9 +46,8 @@ export default function PostDetail() {
       </div>
     );
 
-  // 데모용: 실제로는 로그인 사용자와 작성자를 비교합니다.
-  const isOwner = post.author === CURRENT_USER || true;
-  const images = post.images && post.images.length ? post.images : [];
+  // 데모용: 실제로는 로그인 사용자(userId)와 작성자를 비교합니다.
+  const isOwner = post.userId === CURRENT_USER_ID || true;
   const resolved = post.status === "resolved";
 
   async function toggleStatus() {
@@ -87,30 +83,9 @@ export default function PostDetail() {
         ← 목록으로
       </button>
 
-      {/* 2단 레이아웃 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "start" }}>
-        {/* 왼쪽: 사진 갤러리 */}
-        <div>
-          <ImageBox src={images[activeImg]} label="물건 사진" big />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginTop: 14 }}>
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                onClick={() => images[i] && setActiveImg(i)}
-                style={{
-                  padding: 0,
-                  border: activeImg === i && images[i] ? `2px solid ${C.brand}` : "none",
-                  borderRadius: 14,
-                  background: "none",
-                  cursor: images[i] ? "pointer" : "default",
-                  overflow: "hidden",
-                }}
-              >
-                <ImageBox src={images[i]} />
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* 왼쪽: 사진 */}
+        <ImageBox src={post.imageUrl} label="물건 사진" />
 
         {/* 오른쪽: 정보 */}
         <div>
@@ -123,19 +98,18 @@ export default function PostDetail() {
             {post.title}
           </h1>
 
-          {/* 정보 카드 */}
           <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: "8px 22px", marginBottom: 22 }}>
+            <InfoRow label="물품명" value={post.itemName} />
             <InfoRow label="분류" value={post.category} />
             <InfoRow label="장소" value={post.location} />
-            <InfoRow label="날짜" value={shortDate(post.date)} />
-            <InfoRow label="등록자" value={maskAuthor(post.author)} last />
+            <InfoRow label="날짜" value={shortDate(post.eventDate)} />
+            <InfoRow label="등록자" value={maskSid(post.authorStudentId)} last />
           </div>
 
           <p style={{ fontSize: 16, lineHeight: 1.75, color: "#33415c", whiteSpace: "pre-wrap", marginBottom: 26 }}>
-            {post.desc}
+            {post.description}
           </p>
 
-          {/* 작성자 상태 변경 */}
           {isOwner && (
             <button
               onClick={toggleStatus}
@@ -157,7 +131,6 @@ export default function PostDetail() {
             </button>
           )}
 
-          {/* 수정 / 삭제 (작성자) */}
           {isOwner && (
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => navigate(`/write?type=${post.type}`)} style={subBtn(C.text)}>수정</button>
@@ -167,13 +140,11 @@ export default function PostDetail() {
         </div>
       </div>
 
-      {/* 댓글 / 문의 */}
       <CommentSection postId={post.id} comments={comments} setComments={setComments} />
     </div>
   );
 }
 
-/* ---------- 댓글 영역 ---------- */
 function CommentSection({
   postId,
   comments,
@@ -205,7 +176,6 @@ function CommentSection({
         문의 · 댓글 <span style={{ color: C.brand }}>{comments.length}</span>
       </h2>
 
-      {/* 입력 */}
       <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
         <input
           value={text}
@@ -223,7 +193,6 @@ function CommentSection({
         </button>
       </div>
 
-      {/* 목록 */}
       {comments.length === 0 ? (
         <p style={{ color: C.muted, fontSize: 14.5 }}>아직 댓글이 없어요. 첫 문의를 남겨보세요.</p>
       ) : (
@@ -231,10 +200,10 @@ function CommentSection({
           {comments.map((c) => (
             <div key={c.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#33415c" }}>{maskAuthor(c.author)}</span>
-                <span style={{ fontSize: 12.5, color: C.muted }}>{c.date}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#33415c" }}>{maskSid(c.authorStudentId)}</span>
+                <span style={{ fontSize: 12.5, color: C.muted }}>{c.createdAt}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 14.5, color: "#33415c", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{c.text}</p>
+              <p style={{ margin: 0, fontSize: 14.5, color: "#33415c", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{c.content}</p>
             </div>
           ))}
         </div>
@@ -243,31 +212,17 @@ function CommentSection({
   );
 }
 
-/* ---------- 작은 컴포넌트들 ---------- */
-function ImageBox({ src, label, big }: { src?: string; label?: string; big?: boolean }) {
-  if (src) {
-    return (
-      <div style={{ width: "100%", aspectRatio: big ? "4 / 3" : "1 / 1", borderRadius: big ? 18 : 14, overflow: "hidden" }}>
-        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-      </div>
-    );
-  }
+function ImageBox({ src, label }: { src?: string; label?: string }) {
   return (
-    <div
-      style={{
-        width: "100%",
-        aspectRatio: big ? "4 / 3" : "1 / 1",
-        borderRadius: big ? 18 : 14,
-        background: "repeating-linear-gradient(45deg,#eef2fa,#eef2fa 11px,#e7edf8 11px,#e7edf8 22px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {label && (
-        <span style={{ fontFamily: "ui-monospace,monospace", fontSize: 12, color: "#94a1bd", background: "rgba(255,255,255,0.85)", padding: "4px 10px", borderRadius: 7 }}>
-          {label}
-        </span>
+    <div style={{ width: "100%", aspectRatio: "4 / 3", borderRadius: 18, overflow: "hidden", background: src ? undefined : "repeating-linear-gradient(45deg,#eef2fa,#eef2fa 11px,#e7edf8 11px,#e7edf8 22px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {src ? (
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      ) : (
+        label && (
+          <span style={{ fontFamily: "ui-monospace,monospace", fontSize: 12, color: "#94a1bd", background: "rgba(255,255,255,0.85)", padding: "4px 10px", borderRadius: 7 }}>
+            {label}
+          </span>
+        )
       )}
     </div>
   );
@@ -293,14 +248,7 @@ function StatusBadge({ resolved }: { resolved: boolean }) {
 
 function InfoRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 20,
-        padding: "16px 0",
-        borderBottom: last ? "none" : `1px solid ${C.line}`,
-      }}
-    >
+    <div style={{ display: "flex", gap: 20, padding: "16px 0", borderBottom: last ? "none" : `1px solid ${C.line}` }}>
       <span style={{ width: 64, flex: "none", fontSize: 14.5, color: C.muted }}>{label}</span>
       <span style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{value}</span>
     </div>
