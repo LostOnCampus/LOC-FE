@@ -114,15 +114,14 @@ export async function getPost(id: number): Promise<Post | undefined> {
   return data ? normalizePost(data) : undefined;
 }
 
-// 상세의 댓글을 따로 꺼내는 헬퍼 (상세 응답에 comments가 함께 옴)
+// 댓글 조회 (GET /posts/{id}/comments)
 export async function getComments(postId: number): Promise<Comment[]> {
   if (USE_MOCK) {
     await delay(150);
     return MOCK_COMMENTS.filter((c) => c.postId === postId);
   }
-  const data = await api(`/posts/${postId}`);
-  const comments = data?.comments ?? [];
-  return comments.map(normalizeComment);
+  const data = await api(`/posts/${postId}/comments`);
+  return (data ?? []).map(normalizeComment);
 }
 
 // 등록 (X-User-Id 필요, 201)
@@ -257,6 +256,19 @@ export async function addComment(postId: number, content: string): Promise<Comme
     body: JSON.stringify({ content }),
   });
   return normalizeComment(created);
+}
+
+// 댓글 삭제 (DELETE /posts/{id}/comments/{commentId}, X-User-Id 필요)
+export async function deleteComment(postId: number, commentId: number): Promise<void> {
+  if (USE_MOCK) {
+    await delay(150);
+    MOCK_COMMENTS = MOCK_COMMENTS.filter((c) => c.id !== commentId);
+    return;
+  }
+  await api(`/posts/${postId}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
 }
 
 /* ============================================================

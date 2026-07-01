@@ -6,6 +6,7 @@ import {
   getPost,
   getComments,
   addComment,
+  deleteComment,
   updatePostStatus,
   deletePost,
 } from "../api/posts";
@@ -157,6 +158,7 @@ function CommentSection({
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const currentUser = getCurrentUser();
 
   async function submit() {
     const t = text.trim();
@@ -171,6 +173,12 @@ function CommentSection({
     }
   }
 
+  async function remove(commentId: number) {
+    if (!window.confirm("댓글을 삭제할까요?")) return;
+    await deleteComment(postId, commentId);
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+  }
+
   return (
     <section style={{ marginTop: 48, maxWidth: 760 }}>
       <h2 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 16px" }}>
@@ -181,7 +189,9 @@ function CommentSection({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
+          }}
           placeholder="궁금한 점이나 문의를 남겨보세요"
           style={{ flex: 1, padding: "13px 15px", borderRadius: 11, border: "1px solid #cfddf7", fontSize: 15, outline: "none" }}
         />
@@ -200,9 +210,19 @@ function CommentSection({
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {comments.map((c) => (
             <div key={c.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "#33415c" }}>{showName(c.authorName)}</span>
-                <span style={{ fontSize: 12.5, color: C.muted }}>{c.createdAt}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 12.5, color: C.muted }}>{c.createdAt}</span>
+                  {currentUser && c.userId === currentUser.id && (
+                    <button
+                      onClick={() => remove(c.id)}
+                      style={{ background: "none", border: "none", color: C.muted, fontSize: 12.5, cursor: "pointer", padding: 0 }}
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
               <p style={{ margin: 0, fontSize: 14.5, color: "#33415c", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{c.content}</p>
             </div>
