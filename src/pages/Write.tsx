@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { C, CATEGORY_OPTIONS } from "../types";
 import type { PostType, Category } from "../types";
 import { createPost } from "../api/posts";
+import { getCurrentUser } from "../api/auth";
 
 const wrap: React.CSSProperties = { maxWidth: 720, margin: "0 auto", padding: "34px 24px 60px" };
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -11,6 +12,8 @@ export default function Write() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const initialType = (params.get("type") as PostType) || "LOST";
+
+  const currentUser = getCurrentUser();
 
   const [type, setType] = useState<PostType>(initialType);
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0].code);
@@ -22,6 +25,21 @@ export default function Write() {
   const [image, setImage] = useState<{ url: string; file: File } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // 로그인 안 했으면 글쓰기 대신 로그인 안내 (모든 훅 선언 이후에 분기)
+  if (!currentUser) {
+    return (
+      <div style={{ ...wrap, textAlign: "center", paddingTop: 80 }}>
+        <p style={{ fontSize: 16, color: C.sub, marginBottom: 20 }}>글을 등록하려면 로그인이 필요해요.</p>
+        <button
+          onClick={() => navigate("/auth")}
+          style={{ background: C.brand, color: "#fff", border: "none", borderRadius: 12, padding: "13px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
+        >
+          로그인하러 가기
+        </button>
+      </div>
+    );
+  }
 
   function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

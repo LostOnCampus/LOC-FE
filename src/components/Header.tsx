@@ -1,5 +1,8 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { C } from "../types";
+import { getCurrentUser, logout, subscribe } from "../api/auth";
+import type { AuthUser } from "../api/auth";
 
 const SITE_NAME = "다시봄 · 분실물 센터";
 
@@ -18,8 +21,10 @@ function navStyle(active: boolean): React.CSSProperties {
 
 export function Header() {
   const navigate = useNavigate();
-  // 데모용 로그인 상태 (실제로는 인증 연동). 지금은 비로그인으로 시작.
-  const loggedIn = false;
+  // 로그인 상태 (localStorage 기반, 변경 시 자동 갱신)
+  const [user, setUser] = useState<AuthUser | null>(getCurrentUser());
+  useEffect(() => subscribe(() => setUser(getCurrentUser())), []);
+  const loggedIn = !!user;
 
   return (
     <header
@@ -91,7 +96,29 @@ export function Header() {
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
           {loggedIn ? (
-            <span style={{ fontSize: 13.5, color: "#55617a" }}>학번 님</span>
+            <>
+              <span style={{ fontSize: 13.5, color: "#55617a" }}>
+                <b style={{ color: C.text }}>{user!.name}</b>님
+              </span>
+              <button
+                onClick={() => {
+                  logout();
+                  navigate("/");
+                }}
+                style={{
+                  background: "#fff",
+                  color: "#55617a",
+                  border: "1px solid #e0e5ee",
+                  borderRadius: 10,
+                  padding: "9px 14px",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                로그아웃
+              </button>
+            </>
           ) : (
             <button
               onClick={() => navigate("/auth")}

@@ -1,5 +1,6 @@
 import type { Post, NewPost, PostStatus, Comment, NewInquiry, Inquiry } from "../types";
 import { MOCK_POSTS } from "../data/mockPosts";
+import { getCurrentUser } from "./auth";
 
 /**
  * ============================================================
@@ -17,9 +18,11 @@ import { MOCK_POSTS } from "../data/mockPosts";
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
 const USE_MOCK = !API_URL;
 
-// 현재 로그인 사용자(데모용). 실제로는 인증 토큰/세션에서 가져옵니다.
-export const CURRENT_USER_ID = 1;
-export const CURRENT_STUDENT_ID = "20230000";
+// 로그인 안 했을 때 대비 기본값
+const GUEST = { id: 0, studentId: "00000000", name: "게스트" };
+function me() {
+  return getCurrentUser() ?? GUEST;
+}
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -94,16 +97,18 @@ export async function createPost(data: NewPost): Promise<Post> {
     const created: Post = {
       ...data,
       id: Date.now(),
-      userId: CURRENT_USER_ID,
-      authorStudentId: CURRENT_STUDENT_ID,
+      userId: me().id,
+      authorStudentId: me().studentId,
       eventDate: data.eventDate || new Date().toISOString().slice(0, 10),
       status: "PROCESS",
     };
     MOCK_POSTS.unshift(created);
     return created;
   }
-  // 백엔드 컬럼명(snake_case)에 맞춰 전송. user_id/status는 서버가 채움.
+  // 백엔드 컬럼명(snake_case)에 맞춰 전송. status는 서버가 채움.
+  // 작성자 연결용 userId 포함 (백엔드가 토큰으로 식별한다면 무시됨).
   const body = {
+    user_id: me().id,
     type: data.type,
     title: data.title,
     item_name: data.itemName,
@@ -169,8 +174,8 @@ export async function addComment(postId: number, content: string): Promise<Comme
     const c: Comment = {
       id: Date.now(),
       postId,
-      userId: CURRENT_USER_ID,
-      authorStudentId: CURRENT_STUDENT_ID,
+      userId: me().id,
+      authorStudentId: me().studentId,
       content,
       createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
     };
@@ -180,7 +185,7 @@ export async function addComment(postId: number, content: string): Promise<Comme
   const res = await fetch(`${API_URL}/posts/${postId}/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, user_id: me().id }),
   });
   if (!res.ok) throw new Error("댓글 등록에 실패했습니다.");
   return normalizeComment(await res.json());

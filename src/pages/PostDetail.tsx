@@ -8,8 +8,8 @@ import {
   addComment,
   updatePostStatus,
   deletePost,
-  CURRENT_USER_ID,
 } from "../api/posts";
+import { getCurrentUser } from "../api/auth";
 import { TypeBadge } from "../components/PostCard";
 
 const wrap: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: "30px 24px 70px" };
@@ -46,8 +46,9 @@ export default function PostDetail() {
       </div>
     );
 
-  // 데모용: 실제로는 로그인 사용자(userId)와 작성자를 비교합니다.
-  const isOwner = post.userId === CURRENT_USER_ID || true;
+  // 로그인한 사용자가 이 글의 작성자일 때만 수정/삭제/상태변경 노출
+  const currentUser = getCurrentUser();
+  const isOwner = !!currentUser && post.userId === currentUser.id;
   const resolved = post.status === "COMPLETED";
 
   async function toggleStatus() {
