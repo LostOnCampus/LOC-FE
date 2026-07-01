@@ -4,6 +4,7 @@ import { C } from "../types";
 import type { Post } from "../types";
 import { getPosts } from "../api/posts";
 import { PostCard } from "../components/PostCard";
+import heroIllustration from "../assets/hero-illustration.svg";
 
 const wrap: React.CSSProperties = { maxWidth: 1160, margin: "0 auto", padding: "0 24px" };
 
@@ -123,30 +124,14 @@ export default function Home() {
           </div>
           <div
             style={{
-              width: 288,
+              width: 320,
               flex: "none",
-              aspectRatio: "4 / 3",
-              borderRadius: 18,
-              background:
-                "repeating-linear-gradient(45deg,#dde8fb,#dde8fb 10px,#d2e0f8 10px,#d2e0f8 20px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px solid #cdddf7",
             }}
           >
-            <span
-              style={{
-                fontFamily: "ui-monospace,Menlo,monospace",
-                fontSize: 11,
-                color: "#6f86b8",
-                background: "rgba(255,255,255,0.8)",
-                padding: "4px 9px",
-                borderRadius: 7,
-              }}
-            >
-              illustration / 안내 이미지
-            </span>
+            <img src={heroIllustration} alt="분실물을 찾는 돋보기 일러스트" style={{ width: "100%", height: "auto" }} />
           </div>
         </div>
       </section>

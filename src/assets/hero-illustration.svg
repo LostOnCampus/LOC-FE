@@ -1,0 +1,52 @@
+<svg viewBox="0 0 440 340" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="분실물을 찾는 돋보기 일러스트">
+  <defs>
+    <linearGradient id="loc-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6fed"/>
+      <stop offset="1" stop-color="#5b8df5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 부드러운 원 -->
+  <circle cx="220" cy="170" r="150" fill="#eaf1ff"/>
+  <circle cx="220" cy="170" r="150" stroke="#d7e4fd" stroke-width="1.5"/>
+
+  <!-- 점선 위치 마커들 (여기저기 흩어진 물건 느낌) -->
+  <g stroke="#b9cdf6" stroke-width="2.5" stroke-linecap="round">
+    <circle cx="96" cy="96" r="4" fill="#b9cdf6" stroke="none"/>
+    <circle cx="352" cy="120" r="4" fill="#b9cdf6" stroke="none"/>
+    <circle cx="118" cy="252" r="4" fill="#b9cdf6" stroke="none"/>
+  </g>
+
+  <!-- 왼쪽 위: 지갑 아이콘 -->
+  <g transform="translate(70 78)" stroke="#7ea3f0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="0" y="6" width="46" height="34" rx="7" fill="#fff"/>
+    <path d="M0 15 h46"/>
+    <circle cx="35" cy="27" r="3.5" fill="#7ea3f0" stroke="none"/>
+  </g>
+
+  <!-- 오른쪽 위: 열쇠 아이콘 -->
+  <g transform="translate(320 96)" stroke="#7ea3f0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="12" cy="12" r="11" fill="#fff"/>
+    <circle cx="12" cy="12" r="4" fill="#7ea3f0" stroke="none"/>
+    <path d="M20 20 l14 14 M30 30 l-5 5 M34 34 l-5 5"/>
+  </g>
+
+  <!-- 왼쪽 아래: 이어폰 케이스 아이콘 -->
+  <g transform="translate(78 232)" stroke="#7ea3f0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="0" y="0" width="34" height="30" rx="9" fill="#fff"/>
+    <path d="M0 12 h34"/>
+  </g>
+
+  <!-- 중앙: 큰 돋보기 (브랜드 컬러) -->
+  <g transform="translate(150 96)">
+    <!-- 렌즈 안쪽 하이라이트 -->
+    <circle cx="70" cy="70" r="62" fill="#fff"/>
+    <circle cx="70" cy="70" r="62" stroke="url(#loc-grad)" stroke-width="10"/>
+    <!-- 렌즈 속: 체크 표시(찾았다) -->
+    <path d="M46 72 l16 17 l30 -34" stroke="url(#loc-grad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- 반짝임 -->
+    <path d="M44 44 a34 34 0 0 1 18 -12" stroke="#cfe0fd" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <!-- 손잡이 -->
+    <rect x="112" y="112" width="26" height="72" rx="13" transform="rotate(-45 125 148)" fill="url(#loc-grad)"/>
+  </g>
+</svg>
