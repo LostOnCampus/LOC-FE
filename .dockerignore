@@ -3,5 +3,4 @@ node_modules
 .gitignore
 build
 dist
-.env
 *.md
