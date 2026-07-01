@@ -158,6 +158,54 @@ export async function createPost(data: NewPost): Promise<Post> {
   return normalizePost(created);
 }
 
+// 수정 (PUT /posts/{id}, X-User-Id 필요)
+export async function updatePost(id: number, data: NewPost): Promise<Post> {
+  if (USE_MOCK) {
+    await delay(300);
+    const post = MOCK_POSTS.find((p) => p.id === id);
+    if (!post) throw new Error("게시글을 찾을 수 없습니다.");
+    Object.assign(post, data);
+    return post;
+  }
+  const body = {
+    type: data.type,
+    title: data.title,
+    itemName: data.itemName,
+    category: data.category,
+    location: data.location,
+    eventDate: data.eventDate,
+    description: data.description,
+    imageUrl: data.imageUrl ?? "",
+  };
+  const updated = await api(`/posts/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  return normalizePost(updated);
+}
+
+// 이미지 업로드 (multipart/form-data, X-User-Id 필요) → 응답 data가 URL 문자열
+export async function uploadImage(file: File): Promise<string> {
+  if (USE_MOCK) {
+    await delay(200);
+    return URL.createObjectURL(file); // mock: 로컬 미리보기 URL
+  }
+  const form = new FormData();
+  form.append("file", file);
+  // multipart는 Content-Type을 브라우저가 boundary와 함께 자동 설정하므로 직접 지정하지 않음
+  const res = await fetch(`${API_URL}/files/upload`, {
+    method: "POST",
+    headers: { Accept: "application/json", ...authHeaders() },
+    body: form,
+  });
+  if (!res.ok) throw new Error("이미지 업로드에 실패했습니다.");
+  const json = await res.json();
+  const data = json?.data ?? json;
+  // data가 문자열(URL)이거나 { url: ... } 형태 둘 다 대응
+  return typeof data === "string" ? data : data?.url ?? data?.imageUrl ?? "";
+}
+
 // 상태 변경 (X-User-Id 필요, body { status })
 export async function updatePostStatus(id: number, status: PostStatus): Promise<Post> {
   if (USE_MOCK) {

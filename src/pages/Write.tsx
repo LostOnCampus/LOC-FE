@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { C, CATEGORY_OPTIONS } from "../types";
 import type { PostType, Category } from "../types";
-import { createPost } from "../api/posts";
+import { createPost, updatePost, getPost, uploadImage } from "../api/posts";
 import { getCurrentUser } from "../api/auth";
 
 const wrap: React.CSSProperties = { maxWidth: 720, margin: "0 auto", padding: "34px 24px 60px" };
@@ -11,30 +11,54 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export default function Write() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const editId = params.get("edit"); // 있으면 수정 모드
+  const isEdit = !!editId;
   const initialType = (params.get("type") as PostType) || "LOST";
 
   const currentUser = getCurrentUser();
 
   const [type, setType] = useState<PostType>(initialType);
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0].code);
+  const [category, setCategory] = useState<Category>(CATEGORY_OPTIONS[0].code);
   const [title, setTitle] = useState("");
   const [itemName, setItemName] = useState("");
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState<{ url: string; file: File } | null>(null);
+  // 이미지: 기존 URL(수정 시) 또는 새로 고른 파일
+  const [existingImageUrl, setExistingImageUrl] = useState<string>("");
+  const [newImage, setNewImage] = useState<{ url: string; file: File } | null>(null);
+  const [loadingPost, setLoadingPost] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // 로그인 안 했으면 글쓰기 대신 로그인 안내 (모든 훅 선언 이후에 분기)
+  // 수정 모드: 기존 글 내용 불러와서 폼 채우기
+  useEffect(() => {
+    if (!isEdit) return;
+    getPost(Number(editId))
+      .then((p) => {
+        if (!p) {
+          setError("수정할 게시글을 찾을 수 없습니다.");
+          return;
+        }
+        setType(p.type);
+        setCategory(p.category);
+        setTitle(p.title);
+        setItemName(p.itemName);
+        setEventDate(p.eventDate);
+        setLocation(p.location);
+        setDescription(p.description);
+        setExistingImageUrl(p.imageUrl ?? "");
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "불러오기 실패"))
+      .finally(() => setLoadingPost(false));
+  }, [isEdit, editId]);
+
+  // 로그인 안 했으면 안내 (모든 훅 선언 이후 분기)
   if (!currentUser) {
     return (
       <div style={{ ...wrap, textAlign: "center", paddingTop: 80 }}>
         <p style={{ fontSize: 16, color: C.sub, marginBottom: 20 }}>글을 등록하려면 로그인이 필요해요.</p>
-        <button
-          onClick={() => navigate("/auth")}
-          style={{ background: C.brand, color: "#fff", border: "none", borderRadius: 12, padding: "13px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
-        >
+        <button onClick={() => navigate("/auth")} style={{ background: C.brand, color: "#fff", border: "none", borderRadius: 12, padding: "13px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           로그인하러 가기
         </button>
       </div>
@@ -54,13 +78,14 @@ export default function Write() {
       return;
     }
     setError("");
-    if (image) URL.revokeObjectURL(image.url);
-    setImage({ url: URL.createObjectURL(file), file });
+    if (newImage) URL.revokeObjectURL(newImage.url);
+    setNewImage({ url: URL.createObjectURL(file), file });
   }
 
   function removeImage() {
-    if (image) URL.revokeObjectURL(image.url);
-    setImage(null);
+    if (newImage) URL.revokeObjectURL(newImage.url);
+    setNewImage(null);
+    setExistingImageUrl(""); // 기존 이미지도 제거
   }
 
   async function submit() {
@@ -71,29 +96,30 @@ export default function Write() {
     setError("");
     setSubmitting(true);
     try {
-      // mock이라 미리보기 URL을 그대로 저장. 실제 서버 연결 시엔
-      // image.file 을 FormData로 업로드 → 받은 URL을 imageUrl 로 보냅니다.
-      const created = await createPost({
-        type,
-        category,
-        title,
-        itemName,
-        eventDate,
-        location,
-        description,
-        imageUrl: image?.url,
-      });
-      navigate(`/posts/${created.id}`);
+      // 새 이미지를 골랐으면 먼저 업로드해서 URL 받기, 아니면 기존 URL 유지
+      let imageUrl = existingImageUrl;
+      if (newImage) {
+        imageUrl = await uploadImage(newImage.file);
+      }
+      const payload = { type, category, title, itemName, eventDate, location, description, imageUrl };
+      const result = isEdit
+        ? await updatePost(Number(editId), payload)
+        : await createPost(payload);
+      navigate(`/posts/${result.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "등록에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "저장에 실패했습니다.");
     } finally {
       setSubmitting(false);
     }
   }
 
+  if (loadingPost) return <div style={wrap}>불러오는 중…</div>;
+
+  const previewUrl = newImage?.url || existingImageUrl;
+
   return (
     <div style={wrap}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 22px" }}>글 등록</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 22px" }}>{isEdit ? "글 수정" : "글 등록"}</h1>
 
       <Field label="유형 *">
         <div style={{ display: "flex", gap: 10 }}>
@@ -141,55 +167,18 @@ export default function Write() {
         />
       </Field>
 
-      {/* 사진 업로드 (1장) */}
       <Field label="사진 업로드">
         <div style={{ display: "flex", gap: 12 }}>
-          {!image ? (
-            <label
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: 14,
-                border: `1.5px dashed #b7c8ee`,
-                background: "#f6f9ff",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                color: C.brand,
-                cursor: "pointer",
-                fontSize: 13.5,
-                fontWeight: 600,
-              }}
-            >
+          {!previewUrl ? (
+            <label style={{ width: 120, height: 120, borderRadius: 14, border: `1.5px dashed #b7c8ee`, background: "#f6f9ff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: C.brand, cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>
               <span style={{ fontSize: 24, fontWeight: 400, lineHeight: 1 }}>+</span>
               사진 추가
               <input type="file" accept="image/jpeg,image/png" onChange={onPickImage} style={{ display: "none" }} />
             </label>
           ) : (
             <div style={{ position: "relative", width: 120, height: 120 }}>
-              <img src={image.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 14, border: `1px solid ${C.line}` }} />
-              <button
-                onClick={removeImage}
-                aria-label="삭제"
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  right: 6,
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  border: "none",
-                  background: "rgba(30,40,60,0.65)",
-                  color: "#fff",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <img src={previewUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 14, border: `1px solid ${C.line}` }} />
+              <button onClick={removeImage} aria-label="삭제" style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "rgba(30,40,60,0.65)", color: "#fff", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 ✕
               </button>
             </div>
@@ -203,7 +192,7 @@ export default function Write() {
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
         <button onClick={() => navigate(-1)} style={ghostBtn}>취소</button>
         <button onClick={submit} disabled={submitting} style={{ ...primaryBtn, opacity: submitting ? 0.6 : 1 }}>
-          {submitting ? "등록 중…" : "등록하기"}
+          {submitting ? "저장 중…" : isEdit ? "수정하기" : "등록하기"}
         </button>
       </div>
     </div>
@@ -212,20 +201,7 @@ export default function Write() {
 
 function Seg({ active, color, bg, onClick, children }: { active: boolean; color: string; bg: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: "14px",
-        borderRadius: 12,
-        border: `1.5px solid ${active ? color : C.line}`,
-        background: active ? bg : "#fff",
-        color: active ? color : "#7a869e",
-        fontSize: 15,
-        fontWeight: 700,
-        cursor: "pointer",
-      }}
-    >
+    <button onClick={onClick} style={{ flex: 1, padding: "14px", borderRadius: 12, border: `1.5px solid ${active ? color : C.line}`, background: active ? bg : "#fff", color: active ? color : "#7a869e", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
       {children}
     </button>
   );
@@ -240,33 +216,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "13px 15px",
-  borderRadius: 11,
-  border: `1px solid #cfddf7`,
-  background: "#fff",
-  fontSize: 15,
-  outline: "none",
-};
-const primaryBtn: React.CSSProperties = {
-  flex: 1,
-  background: C.brand,
-  color: "#fff",
-  border: "none",
-  borderRadius: 12,
-  padding: "15px",
-  fontSize: 16,
-  fontWeight: 700,
-  cursor: "pointer",
-};
-const ghostBtn: React.CSSProperties = {
-  padding: "15px 24px",
-  background: "#fff",
-  color: "#55617a",
-  border: `1px solid ${C.line}`,
-  borderRadius: 12,
-  fontSize: 16,
-  fontWeight: 600,
-  cursor: "pointer",
-};
+const inputStyle: React.CSSProperties = { width: "100%", padding: "13px 15px", borderRadius: 11, border: `1px solid #cfddf7`, background: "#fff", fontSize: 15, outline: "none" };
+const primaryBtn: React.CSSProperties = { flex: 1, background: C.brand, color: "#fff", border: "none", borderRadius: 12, padding: "15px", fontSize: 16, fontWeight: 700, cursor: "pointer" };
+const ghostBtn: React.CSSProperties = { padding: "15px 24px", background: "#fff", color: "#55617a", border: `1px solid ${C.line}`, borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: "pointer" };

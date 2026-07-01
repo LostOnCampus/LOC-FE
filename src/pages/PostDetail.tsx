@@ -134,7 +134,7 @@ export default function PostDetail() {
 
           {isOwner && (
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => navigate(`/write?type=${post.type}`)} style={subBtn(C.text)}>수정</button>
+              <button onClick={() => navigate(`/write?edit=${post.id}`)} style={subBtn(C.text)}>수정</button>
               <button onClick={onDelete} disabled={busy} style={subBtn(C.lost)}>삭제</button>
             </div>
           )}
