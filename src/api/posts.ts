@@ -97,7 +97,7 @@ export async function createPost(data: NewPost): Promise<Post> {
       userId: CURRENT_USER_ID,
       authorStudentId: CURRENT_STUDENT_ID,
       eventDate: data.eventDate || new Date().toISOString().slice(0, 10),
-      status: "open",
+      status: "PROCESS",
     };
     MOCK_POSTS.unshift(created);
     return created;

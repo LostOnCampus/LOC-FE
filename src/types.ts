@@ -1,46 +1,78 @@
 // ============================================================
-//  백엔드 ER 다이어그램에 맞춘 데이터 모델
-//  (posts / users / comments / inquiries)
+//  백엔드 DB(ddl.sql) ENUM 값에 맞춘 데이터 모델
+//  내부 값은 백엔드와 동일한 영문 대문자, 화면 표시는 한글 라벨로 매핑
 // ============================================================
 
-export type PostType = "lost" | "found"; // posts.type ENUM
-export type PostStatus = "open" | "resolved"; // posts.status ENUM
+export type PostType = "LOST" | "FOUND"; // posts.type ENUM
+export type PostStatus = "PROCESS" | "COMPLETED"; // posts.status ENUM
+export type Category =
+  | "ELECTRONIC"
+  | "WALLETS"
+  | "IDS"
+  | "CLOTHING"
+  | "BOOKS"
+  | "OTHERS"; // posts.category ENUM
+
+// ---- 화면 표시용 한글 라벨 ----
+export const TYPE_LABEL: Record<PostType, string> = {
+  LOST: "분실물",
+  FOUND: "습득물",
+};
+
+export const STATUS_LABEL: Record<PostStatus, string> = {
+  PROCESS: "찾는 중",
+  COMPLETED: "해결 완료",
+};
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  ELECTRONIC: "전자기기",
+  WALLETS: "지갑/카드",
+  IDS: "신분증",
+  CLOTHING: "의류",
+  BOOKS: "도서",
+  OTHERS: "기타",
+};
+
+// 글쓰기 select 용 (코드 + 한글 라벨)
+export const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as Category[]).map(
+  (code) => ({ code, label: CATEGORY_LABEL[code] })
+);
 
 // posts 테이블 (+ users 조인으로 작성자 학번 표시)
 export interface Post {
   id: number; // posts.id
   userId: number; // posts.user_id (FK → users.id)
   authorStudentId?: string; // users.student_id (조인해서 내려주는 값, 표시용)
-  type: PostType; // posts.type
+  type: PostType; // posts.type  (LOST/FOUND)
   title: string; // posts.title
-  itemName: string; // posts.item_name  ← 새로 추가
-  category: string; // posts.category (ENUM)
+  itemName: string; // posts.item_name
+  category: Category; // posts.category
   location: string; // posts.location
   eventDate: string; // posts.event_date ("2026-06-29")
   description: string; // posts.description
-  imageUrl?: string; // posts.image_url (한 장)
-  status: PostStatus; // posts.status
+  imageUrl?: string; // posts.image_url (한 장, varchar 255)
+  status: PostStatus; // posts.status (PROCESS/COMPLETED)
   createdAt?: string; // posts.created_at
   updatedAt?: string; // posts.updated_at
 }
 
 // comments 테이블
 export interface Comment {
-  id: number; // comments.id
-  postId: number; // comments.post_id
-  userId: number; // comments.user_id
-  authorStudentId?: string; // users.student_id (표시용)
-  content: string; // comments.content
-  createdAt: string; // comments.created_at
+  id: number;
+  postId: number;
+  userId: number;
+  authorStudentId?: string;
+  content: string;
+  createdAt: string;
 }
 
-// inquiries 테이블 (제보/문의 — 게시글과 별개의 연락 폼)
+// inquiries 테이블 (문의 폼)
 export interface Inquiry {
   id: number;
-  name: string; // inquiries.name
-  phone: string; // inquiries.phone
-  message: string; // inquiries.message
-  createdAt?: string; // inquiries.created_at
+  name: string;
+  phone: string;
+  message: string;
+  createdAt?: string;
 }
 
 // 글 작성 시 서버로 보낼 데이터 (id/userId/status/날짜는 서버가 채움)
@@ -49,11 +81,7 @@ export type NewPost = Omit<
   "id" | "userId" | "authorStudentId" | "status" | "createdAt" | "updatedAt"
 >;
 
-// 문의 작성 시 보낼 데이터
 export type NewInquiry = Omit<Inquiry, "id" | "createdAt">;
-
-// 카테고리 ENUM 후보 (백엔드 category ENUM 값과 동일하게 유지)
-export const CATEGORIES = ["전자기기", "지갑/카드", "의류", "신분증", "기타"];
 
 // 디자인 토큰
 export const C = {

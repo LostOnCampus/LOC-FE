@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { C, CATEGORIES } from "../types";
-import type { PostType } from "../types";
+import { C, CATEGORY_OPTIONS } from "../types";
+import type { PostType, Category } from "../types";
 import { createPost } from "../api/posts";
 
 const wrap: React.CSSProperties = { maxWidth: 720, margin: "0 auto", padding: "34px 24px 60px" };
@@ -10,10 +10,10 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export default function Write() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const initialType = (params.get("type") as PostType) || "lost";
+  const initialType = (params.get("type") as PostType) || "LOST";
 
   const [type, setType] = useState<PostType>(initialType);
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(CATEGORY_OPTIONS[0].code);
   const [title, setTitle] = useState("");
   const [itemName, setItemName] = useState("");
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
@@ -79,10 +79,10 @@ export default function Write() {
 
       <Field label="유형 *">
         <div style={{ display: "flex", gap: 10 }}>
-          <Seg active={type === "lost"} color={C.lost} bg={C.lostBg} onClick={() => setType("lost")}>
+          <Seg active={type === "LOST"} color={C.lost} bg={C.lostBg} onClick={() => setType("LOST")}>
             분실물 (잃어버렸어요)
           </Seg>
-          <Seg active={type === "found"} color={C.found} bg={C.foundBg} onClick={() => setType("found")}>
+          <Seg active={type === "FOUND"} color={C.found} bg={C.foundBg} onClick={() => setType("FOUND")}>
             습득물 (주웠어요)
           </Seg>
         </div>
@@ -98,9 +98,9 @@ export default function Write() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Field label="분류 *">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
-            {CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
+          <select value={category} onChange={(e) => setCategory(e.target.value as Category)} style={inputStyle}>
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
             ))}
           </select>
         </Field>

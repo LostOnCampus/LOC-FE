@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { C } from "../types";
+import { C, CATEGORY_LABEL } from "../types";
 import type { Post, Comment } from "../types";
 import {
   getPost,
@@ -48,13 +48,13 @@ export default function PostDetail() {
 
   // 데모용: 실제로는 로그인 사용자(userId)와 작성자를 비교합니다.
   const isOwner = post.userId === CURRENT_USER_ID || true;
-  const resolved = post.status === "resolved";
+  const resolved = post.status === "COMPLETED";
 
   async function toggleStatus() {
     if (!post) return;
     setBusy(true);
     try {
-      const next = post.status === "resolved" ? "open" : "resolved";
+      const next = post.status === "COMPLETED" ? "PROCESS" : "COMPLETED";
       const updated = await updatePostStatus(post.id, next);
       setPost({ ...post, status: updated.status });
     } finally {
@@ -100,7 +100,7 @@ export default function PostDetail() {
 
           <div style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 16, padding: "8px 22px", marginBottom: 22 }}>
             <InfoRow label="물품명" value={post.itemName} />
-            <InfoRow label="분류" value={post.category} />
+            <InfoRow label="분류" value={CATEGORY_LABEL[post.category]} />
             <InfoRow label="장소" value={post.location} />
             <InfoRow label="날짜" value={shortDate(post.eventDate)} />
             <InfoRow label="등록자" value={maskSid(post.authorStudentId)} last />
@@ -180,9 +180,7 @@ function CommentSection({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
-          }}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="궁금한 점이나 문의를 남겨보세요"
           style={{ flex: 1, padding: "13px 15px", borderRadius: 11, border: "1px solid #cfddf7", fontSize: 15, outline: "none" }}
         />

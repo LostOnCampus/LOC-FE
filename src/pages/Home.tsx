@@ -20,8 +20,8 @@ export default function Home() {
   }, []);
 
   const recent = posts.slice(0, 4);
-  const lostCount = posts.filter((p) => p.type === "lost").length;
-  const foundCount = posts.filter((p) => p.type === "found").length;
+  const lostCount = posts.filter((p) => p.type === "LOST").length;
+  const foundCount = posts.filter((p) => p.type === "FOUND").length;
 
   function submitSearch() {
     navigate(`/search?q=${encodeURIComponent(query)}`);
@@ -108,13 +108,13 @@ export default function Home() {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button
-                onClick={() => navigate("/write?type=lost")}
+                onClick={() => navigate("/write?type=LOST")}
                 style={pillBtn("#f0c9c9", C.lost)}
               >
                 ＋ 분실물 등록
               </button>
               <button
-                onClick={() => navigate("/write?type=found")}
+                onClick={() => navigate("/write?type=FOUND")}
                 style={pillBtn("#bfe6d2", C.found)}
               >
                 ＋ 습득물 등록

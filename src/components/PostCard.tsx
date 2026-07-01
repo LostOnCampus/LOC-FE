@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { C } from "../types";
+import { C, TYPE_LABEL, CATEGORY_LABEL } from "../types";
 import type { Post } from "../types";
 
 // 분실물/습득물 배지
 export function TypeBadge({ type }: { type: Post["type"] }) {
-  const isLost = type === "lost";
+  const isLost = type === "LOST";
   return (
     <span
       style={{
@@ -17,7 +17,7 @@ export function TypeBadge({ type }: { type: Post["type"] }) {
         fontWeight: 700,
       }}
     >
-      {isLost ? "분실물" : "습득물"}
+      {TYPE_LABEL[type]}
     </span>
   );
 }
@@ -81,7 +81,7 @@ export function PostCard({ post }: { post: Post }) {
         <div style={{ position: "absolute", top: 10, left: 10 }}>
           <TypeBadge type={post.type} />
         </div>
-        {post.status === "resolved" && (
+        {post.status === "COMPLETED" && (
           <div
             style={{
               position: "absolute",
@@ -101,7 +101,7 @@ export function PostCard({ post }: { post: Post }) {
       </div>
       <div style={{ padding: "14px 15px 16px" }}>
         <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, marginBottom: 5 }}>
-          {post.category}
+          {CATEGORY_LABEL[post.category]}
         </div>
         <div
           style={{

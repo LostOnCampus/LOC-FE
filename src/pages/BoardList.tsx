@@ -41,8 +41,8 @@ export default function BoardList() {
       {/* 필터 탭 */}
       <div style={{ display: "flex", gap: 8, marginBottom: 22 }}>
         <Tab active={filter === "all"} onClick={() => setFilter("all")}>전체</Tab>
-        <Tab active={filter === "lost"} onClick={() => setFilter("lost")} color={C.lost}>분실물</Tab>
-        <Tab active={filter === "found"} onClick={() => setFilter("found")} color={C.found}>습득물</Tab>
+        <Tab active={filter === "LOST"} onClick={() => setFilter("LOST")} color={C.lost}>분실물</Tab>
+        <Tab active={filter === "FOUND"} onClick={() => setFilter("FOUND")} color={C.found}>습득물</Tab>
       </div>
 
       {loading ? (
