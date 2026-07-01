@@ -7,8 +7,7 @@
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
 const USE_MOCK = !API_URL;
 
-// 백엔드 로그인 엔드포인트. Swagger에서 정확한 경로 확인 후 이 값만 맞추면 됩니다.
-// (예: "/users/login", "/login", "/auth/login" 등)
+// 로그인 엔드포인트. VITE_API_URL(=/api) 뒤에 붙어 최종 "/api/users/login"이 됩니다.
 const LOGIN_ENDPOINT = "/users/login";
 
 const STORAGE_KEY = "loc_user";
@@ -52,6 +51,13 @@ export function logout() {
   notify();
 }
 
+// 인증이 필요한 요청에 붙일 헤더. 로그인 상태면 X-User-Id 를 담아줍니다.
+// 백엔드가 이 헤더로 사용자를 식별합니다 (수정/삭제/작성 등).
+export function authHeaders(): Record<string, string> {
+  const u = getCurrentUser();
+  return u ? { "X-User-Id": String(u.id) } : {};
+}
+
 /* ---- 백엔드 응답(user) → AuthUser 변환 (snake/camel 모두 대응) ---- */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function normalizeUser(r: any): AuthUser {
@@ -85,10 +91,9 @@ export async function login(studentId: string, name: string): Promise<AuthUser> 
   });
   if (!res.ok) throw new Error("로그인에 실패했습니다.");
 
-  // 백엔드가 토큰을 헤더로 준다면 여기서 꺼내서 저장할 수 있음:
-  //   const token = res.headers.get("Authorization");
-  //   if (token) localStorage.setItem("loc_token", token);
-  const user = normalizeUser(await res.json());
+  // 백엔드 응답은 { success, message, data: {...} } 형태 → data만 꺼냄
+  const json = await res.json();
+  const user = normalizeUser(json.data ?? json);
   saveUser(user);
   return user;
 }
