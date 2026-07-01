@@ -5,7 +5,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 1,
     userId: 11,
-    authorStudentId: "20231234",
+    authorName: "김민준",
     type: "LOST",
     title: "검은색 에어팟 프로 케이스 잃어버렸어요",
     itemName: "에어팟 프로 케이스",
@@ -20,7 +20,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 2,
     userId: 12,
-    authorStudentId: "20219876",
+    authorName: "이서연",
     type: "FOUND",
     title: "학생회관 앞에서 학생증 주웠습니다",
     itemName: "학생증",
@@ -35,7 +35,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 3,
     userId: 13,
-    authorStudentId: "20225555",
+    authorName: "박도윤",
     type: "LOST",
     title: "갈색 반지갑을 찾고 있습니다",
     itemName: "갈색 가죽 반지갑",
@@ -49,7 +49,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 4,
     userId: 14,
-    authorStudentId: "20207777",
+    authorName: "정하은",
     type: "FOUND",
     title: "강의실에 두고 간 검정 후드집업 보관 중",
     itemName: "검정 후드집업 (L)",
@@ -63,7 +63,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 5,
     userId: 15,
-    authorStudentId: "20231111",
+    authorName: "최지우",
     type: "LOST",
     title: "아이패드(11인치) 분실 — 검정 케이스",
     itemName: "아이패드 11인치",
@@ -77,7 +77,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 6,
     userId: 16,
-    authorStudentId: "20198888",
+    authorName: "강시우",
     type: "FOUND",
     title: "운동장 근처에서 텀블러 발견",
     itemName: "은색 텀블러",
@@ -91,7 +91,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 7,
     userId: 17,
-    authorStudentId: "20234321",
+    authorName: "조유나",
     type: "LOST",
     title: "실물 학생증 잃어버렸어요",
     itemName: "학생증",
@@ -105,7 +105,7 @@ export const MOCK_POSTS: Post[] = [
   {
     id: 8,
     userId: 18,
-    authorStudentId: "20226543",
+    authorName: "임채원",
     type: "FOUND",
     title: "보조배터리 습득 (흰색, 10000mAh)",
     itemName: "흰색 보조배터리",

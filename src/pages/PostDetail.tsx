@@ -15,7 +15,7 @@ import { TypeBadge } from "../components/PostCard";
 const wrap: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: "30px 24px 70px" };
 
 const shortDate = (d: string) => (d.length >= 10 ? d.slice(5).replace("-", ".") : d);
-const maskSid = (s?: string) => (s && s.length > 5 ? s.slice(0, 5) + "***" : s ?? "익명");
+const showName = (s?: string) => s || "익명";
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -104,7 +104,7 @@ export default function PostDetail() {
             <InfoRow label="분류" value={CATEGORY_LABEL[post.category]} />
             <InfoRow label="장소" value={post.location} />
             <InfoRow label="날짜" value={shortDate(post.eventDate)} />
-            <InfoRow label="등록자" value={maskSid(post.authorStudentId)} last />
+            <InfoRow label="등록자" value={showName(post.authorName)} last />
           </div>
 
           <p style={{ fontSize: 16, lineHeight: 1.75, color: "#33415c", whiteSpace: "pre-wrap", marginBottom: 26 }}>
@@ -201,7 +201,7 @@ function CommentSection({
           {comments.map((c) => (
             <div key={c.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#33415c" }}>{maskSid(c.authorStudentId)}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#33415c" }}>{showName(c.authorName)}</span>
                 <span style={{ fontSize: 12.5, color: C.muted }}>{c.createdAt}</span>
               </div>
               <p style={{ margin: 0, fontSize: 14.5, color: "#33415c", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{c.content}</p>

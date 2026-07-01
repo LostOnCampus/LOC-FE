@@ -42,7 +42,7 @@ export const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as Category[]).map(
 export interface Post {
   id: number; // posts.id
   userId: number; // posts.user_id (FK → users.id)
-  authorStudentId?: string; // users.student_id (조인해서 내려주는 값, 표시용)
+  authorName?: string; // 백엔드 authorName (작성자 실명, 표시용)
   type: PostType; // posts.type  (LOST/FOUND)
   title: string; // posts.title
   itemName: string; // posts.item_name
@@ -59,9 +59,9 @@ export interface Post {
 // comments 테이블
 export interface Comment {
   id: number;
-  postId: number;
+  postId?: number;
   userId: number;
-  authorStudentId?: string;
+  authorName?: string;
   content: string;
   createdAt: string;
 }
@@ -78,7 +78,7 @@ export interface Inquiry {
 // 글 작성 시 서버로 보낼 데이터 (id/userId/status/날짜는 서버가 채움)
 export type NewPost = Omit<
   Post,
-  "id" | "userId" | "authorStudentId" | "status" | "createdAt" | "updatedAt"
+  "id" | "userId" | "authorName" | "status" | "createdAt" | "updatedAt"
 >;
 
 export type NewInquiry = Omit<Inquiry, "id" | "createdAt">;
